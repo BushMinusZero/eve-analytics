@@ -2,6 +2,7 @@ import pandas as pd
 from datetime import date, datetime, timedelta
 import time, math, random
 import sql_utilities
+import utils
 
 class History(object):
 
@@ -15,10 +16,12 @@ class History(object):
         self.groups = self.find_full_series()
         self.hist['spread'] = self.hist.high - self.hist.low
 
+
     def find_full_series(self, days=10, count=10):
         group_dates = self.hist[self.hist.dt>(max(self.hist.dt)-timedelta(days))]
         groups = group_dates[['typeID','regionID','date']].groupby(['typeID','regionID']).date.count().reset_index()
         return groups[groups.date>=count]
+
 
     def plot_prices(self, hist, typeID, regionID):
     

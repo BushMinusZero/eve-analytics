@@ -1,52 +1,53 @@
-#!/usr/bin/env python
-
+""" 
+    Example Python EMDR client.
+"""
+import os
 import zlib
 import zmq
-import simplejson
 import json
 import time
+import utils
 
-def setup_subscriber():
+class EMDR(object):
 
-    relays = {'us-west':'tcp://relay-us-west-1.eve-emdr.com:8050',
-              'us-central':'tcp://relay-us-central-1.eve-emdr.com:8050',
-              'us-east':'tcp://relay-us-east-1.eve-emdr.com:8050',
-              'canada-east':'tcp://relay-ca-east-1.eve-emdr.com:8050',
-              'german1':'tcp://relay-eu-germany-1.eve-emdr.com:8050',
-              'german2':'tcp://relay-eu-germany-2.eve-emdr.com:8050',
-              'denmark':'tcp://relay-eu-denmark-1.eve-emdr.com:8050'}
-
-    context = zmq.Context()
-    subscriber = context.socket(zmq.SUB)
-
-    # Connect to the first publicly available relay.
-    subscriber.connect(relays['us-west'])
-    
-    # Disable filtering.
-    subscriber.setsockopt(zmq.SUBSCRIBE, "")
-    return subscriber
+    def __init__(self, relay_name='us-west'):
+        self.relay_name = relay_name
+        self.relay = get_relay(relay_name)
+        self.subscriber = self.connect()
 
 
-def stream_data_to_file(subscriber, data_dir, data_prefix):
+    def connect(self):
+        context = zmq.Context()
+        subscriber = context.socket(zmq.SUB)
 
-    while True:
-        market_json = zlib.decompress(subscriber.recv())
-        market_data = simplejson.loads(market_json)
-        f = data_dir + data_prefix + str(time.time()) + '.txt'
-        with open(f, 'w') as outfile:
-            json.dump(market_data, outfile)
+        subscriber.connect(self.relay)
+        subscriber.setsockopt(zmq.SUBSCRIBE, "")
+        return subscriber
+
+
+    def stream_to_file(self, data_dir, data_prefix):
+
+        self.data_dir = data_dir
+        self.data_prefix = data_prefix
+
+        while True:
+            market_json = zlib.decompress(self.subscriber.recv())
+            market_data = json.loads(market_json)
+            filename = os.path.join(data_dir, data_prefix + str(time.time())) + '.txt'
+            with open(filename, 'w') as outfile:
+                json.dump(market_data, outfile)
 
 
 def main():
     """Example Python EMDR client."""
 
-    subscriber = setup_subscriber()
-
     data_dir = 'data/stream/'
     data_prefix = 'emdr'
 
+    emdr = EMDR()
+
     print "[*] Beginning data stream."
-    stream_data_to_file(subscriber, data_dir, data_prefix)
+    emdr.stream_to_file(data_dir, data_prefix)
 
 
 if __name__ == '__main__':
