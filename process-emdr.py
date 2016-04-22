@@ -20,7 +20,7 @@ def parse_raw_emdr_data(data_folder):
             j = json.loads(utils.read_json(f, data_folder))
             rowsets = j['rowsets']
             resultType = j['resultType']
-                    
+
             if resultType=='orders':
                 for rowset in rowsets:
                     for row in rowset['rows']:
